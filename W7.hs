@@ -33,7 +33,7 @@ countRange low high is = length(filter (\i -> i >= low && i <= high) is)
 --add i = do old <- get
 --           put (old+i)
 ---------------------------------
-
+{-
 ---------------------------------------------
 -- Ex 2: Build a string that looks like an n*m chessboard:
 --
@@ -123,13 +123,13 @@ helper k 0 = show k
 helper k n = show k ++ "," ++ helper (k+1) (n-1) ++ "," ++ show k
 -----------------
 
-pyramid :: Int -> String
-pyramid n = unlines $ p n
-  where p 1 = ["#"]
+--pyramid :: Int -> String
+--pyramid n = unlines $ p n
+--  where p 1 = ["#"]
         --p n = map ('#':) (p (n-1)) ++ [replicate (2*n-1) '*']
-        p n = map ('#':) (p (n-1)) ++ [replicate (n) '#']
+--        p n = map ('#':) (p (n-1)) ++ [replicate (n) '#']
 
-
+-}
 ------------------------------------------------------------------------------
 -- Ex 3: Implement the function palindromify that chops a character
 -- off the front _and_ back of a string until the result is a
@@ -217,8 +217,43 @@ sumEithers :: [Either String Int] -> Maybe Int
 sumEithers = undefined
 --sumEithers [] = 0
 --sumEithers x:xs = Just (x sumEithers (xs-1))
+--sumEithers[xs] = Left x
 --sumEithers[x] = Left x
+--sumEithers(x:xs) = Right xs
+--fun :: Int -> Either Int String
+--sumEithers [xs] | [xs] > 0 = sum(Left [xs])
+--                | otherwise = Right "-"
 --sumEithers(x:xs) = Just Right xs 
+----------------------
+myDiv3 :: Float -> Float -> Either String Float
+myDiv3 x 0 = Left "Divison by zero"
+myDiv3 x y = Right (x / y)
+
+example3 x y =
+  case myDiv3 x y of
+    Left msg -> putStrLn msg
+    Right q  -> putStrLn (show q)
+
+-- Example:
+--  classify [Left 1, Right True, Left 0, Right False]
+--     ==> ([1,0],[True,False])
+
+--classify :: [Either a b] -> Maybe Int
+--classify es = go es 
+--  where go (Left a :  es) = print(5)
+--        go (Right b : es) = print(6)
+        
+--classify :: [Either a b] -> ([a],[b])
+-- #ifdef sol
+classify :: [Either a b] -> ([a],[b])
+classify es = go es [] []
+  where go (Left a : es) as bs = go es (a:as) bs
+        go (Right b : es) as bs = go es as (b:bs)
+        --go [] as bs = (reverse as, reverse bs)
+        go [] as bs = (reverse as, reverse bs)
+       --go [] as bs = (Nothing, sum(Just bs))
+
+----------------------
 
 pairOff :: Int -> Either String Int
 pairOff people
@@ -226,9 +261,19 @@ pairOff people
               | people > 30 = Left "Too many people for this activity."
               | even people = Right (people `div` 2)
               | otherwise   = Left "Can't pair off an odd number of people."
+
+divideBy x y = go x y 0
+  where go a b count
+                    | a < b = (a + b)
+                    | otherwise = go (a - b) b (count + 1)
 ------
 -- selectSum [2,7,5,3,9] [0,2,4]
 --    Just 16
+------------------------------------------
+   --sum' :: (Num a) => [a] -> a  
+   --sum' [] = 0  
+   --sum' (x:xs) = x + sum' xs 
+------------------------------------------
 
 --selectSum :: [Int] -> Maybe int
 --selectSum is = sum(Just is)
@@ -417,10 +462,29 @@ instance Ord Foo where
 --
 -- Implement a Functor instance for Twos.
 
----------data Twos a = End a a | Continue a a (Twos a)
---------  deriving (Show, Eq)
+data Twos a = End a a | Continue a a (Twos a)
+  deriving (Show, Eq)
 
---instance Functor Twos where
+instance Functor Twos where
+  fmap f (End a b) = End (f a)(f b) -- $ f a
+  fmap f (Continue a b twos) = Continue (f a) (f b) (fmap f twos)
+
+
+  --data Tree a = Leaf a | Branch (Tree a) (Tree a) deriving (Show)
+
+    --instance Functor Tree where
+    
+    --fmap f (Leaf x)            = Leaf   (f x)
+    --fmap f (Branch left right) = Branch (fmap f left) (fmap f right)
+
+  --fmap _ (Continue a b c) = (Continue a b c)
+  --fmap f (End a a) = (End a a)
+  --fmap f (End d e) = End d (f e)
+   --fmap (Continue c d e )(End a b)
+   --fmap _ (End a a) = End a a
+   --fmap _ (Continue a a a) = Continue a a a
+   --fmap f (Bloor b) = Bloor (f b)
+
  -- fmap succ input === output
  -- input = Continue a b (End c d)
  -- output = Continue (succ a) (succ b) (End (succ c) (succ d))
@@ -500,20 +564,36 @@ multiply :: Int -> Env String
 multiply n = MkEnv (\name -> concat (replicate n name))
 
 instance Functor Env where
---  fmap f Env a = Env f a
-   fmap = undefined -- implement me
 
---instance Monad Env where
+   --fmap = undefined -- implement me
+
+   fmap f (MkEnv g) = MkEnv (f.g)
+
+instance Monad Env where
+  e >>= f = join (fmap f e)
+  return x = undefined 
+  --return x = pure
+
+  --instance Monad (Either a) where
+  --(Right x) >>= k = k x
+  --(Left err) >>= k = Left err
+  --return = Right
+
+  --return x = x
 --  e >>= f = MkEnv (f e)
 --  return x = MkEnv x
 
-instance Monad Env where
-  e >>= f = undefined
-  return x = undefined
+--instance Monad Env where
+--  e >>= f = multiply (to e >>= to . f) -- (replicate (e) f)
+--  return x = multiply (return x) --const --(\name -> (x, name))
 
--- Disregard this instance. In recent versions of the Haskell standard
--- library, all Monads must also be Applicative. These exercises don't
--- really cover Applicative.
+   --  runEnv (envLength >>= multiply) s === concat (replicate (length s) s)
+   -- e >>= f = undefined
+   -- return x = undefined
+
+   -- Disregard this instance. In recent versions of the Haskell standard
+   -- library, all Monads must also be Applicative. These exercises don't
+   -- really cover Applicative.
 instance Applicative Env where
   pure = return
   (<*>) = ap
